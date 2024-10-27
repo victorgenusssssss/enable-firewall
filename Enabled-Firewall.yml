@@ -1,39 +1,22 @@
 ---
-- name: Enable firewall on Ubuntu and CentOS
+- name: Enable UFW firewall on Ubuntu
   hosts: all
   become: yes
   tasks:
-    - name: Enable firewall on Ubuntu (ufw)
+    - name: Install UFW if not present
       ansible.builtin.apt:
         name: ufw
         state: present
       when: ansible_os_family == "Debian"
 
-    - name: Enable and start UFW on Ubuntu
-      ansible.builtin.command: ufw enable
+    - name: Enable UFW firewall
+      ansible.builtin.command: ufw --force enable
       when: ansible_os_family == "Debian"
 
-    - name: Allow all incoming SSH connections (Ubuntu)
+    - name: Allow incoming SSH connections
       ansible.builtin.command: ufw allow ssh
       when: ansible_os_family == "Debian"
 
-    - name: Enable firewall on CentOS (firewalld)
-      ansible.builtin.yum:
-        name: firewalld
-        state: present
-      when: ansible_os_family == "RedHat"
-
-    - name: Start and enable firewalld on CentOS
-      ansible.builtin.service:
-        name: firewalld
-        state: started
-        enabled: yes
-      when: ansible_os_family == "RedHat"
-
-    - name: Allow all incoming SSH connections (CentOS)
-      ansible.builtin.firewalld:
-        service: ssh
-        permanent: yes
-        state: enabled
-        immediate: yes
-      when: ansible_os_family == "RedHat"
+    - name: Reload UFW to apply changes
+      ansible.builtin.command: ufw reload
+      when: ansible_os_family == "Debian"
