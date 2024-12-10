@@ -1,28 +1,35 @@
 ---
-- name: Enable or Disable Firewall on Ubuntu
+- name: Enable UFW Firewall on Ubuntu
   hosts: all
-  become: yes
-  vars:
-    firewall_state: "enable"  # เปลี่ยนเป็น "disable" ถ้าต้องการปิด firewall
-
+  become: true
   tasks:
-    - name: Check if UFW is installed
-      apt:
+    - name: Ensure UFW is installed
+      ansible.builtin.apt:
         name: ufw
         state: present
-      register: ufw_installed
 
-    - name: Enable Firewall
-      command: ufw enable
-      when: firewall_state == "enable"
-      notify: reload_firewall
+    - name: Enable UFW Firewall
+      ansible.builtin.command:
+        cmd: ufw enable
+      register: enable_firewall_result
 
-    - name: Disable Firewall
-      command: ufw disable
-      when: firewall_state == "disable"
-      notify: reload_firewall
+    - name: Start UFW Service
+      ansible.builtin.service:
+        name: ufw
+        state: started
 
-  handlers:
-    - name: reload_firewall
-      command: ufw reload
-      when: firewall_state == "enable"
+    - name: Enable UFW Service to start on boot
+      ansible.builtin.systemd:
+        name: ufw
+        enabled: true
+
+    - name: Check UFW Service Status
+      ansible.builtin.command:
+        cmd: systemctl status ufw
+      register: ufw_service_status
+      changed_when: false
+      failed_when: "'inactive (dead)' not in ufw_service_status.stdout"
+
+    - name: Debug - Show UFW Service Status
+      ansible.builtin.debug:
+        msg: "{{ ufw_service_status.stdout }}"
