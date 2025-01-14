@@ -3,33 +3,27 @@
   hosts: all
   become: true
   tasks:
-    - name: Ensure UFW is installed
-      ansible.builtin.apt:
+    - name: Install UFW if not already installed
+      apt:
         name: ufw
         state: present
+        update_cache: yes
 
-    - name: Enable UFW Firewall
-      ansible.builtin.command:
-        cmd: ufw enable
-      register: enable_firewall_result
+    - name: Allow SSH
+      ufw:
+        rule: allow
+        port: 22
+        proto: tcp
 
-    - name: Start UFW Service
-      ansible.builtin.service:
-        name: ufw
-        state: started
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        logging: on
 
-    - name: Enable UFW Service to start on boot
-      ansible.builtin.systemd:
-        name: ufw
-        enabled: true
+    - name: Ensure UFW is enabled and active
+      command: ufw status
+      register: ufw_status
 
-    - name: Check UFW Service Status
-      ansible.builtin.command:
-        cmd: systemctl status ufw
-      register: ufw_service_status
-      changed_when: false
-      failed_when: "'inactive (dead)' not in ufw_service_status.stdout"
-
-    - name: Debug - Show UFW Service Status
-      ansible.builtin.debug:
-        msg: "{{ ufw_service_status.stdout }}"
+    - name: Debug UFW status
+      debug:
+        msg: "{{ ufw_status.stdout }}"
